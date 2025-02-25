@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -17,28 +18,37 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users,email',
+                'password' => 'required|string|min:6',
+            ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password)
-        ]);
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password)
+            ]);
 
-        $token = Auth::login($user);
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User Created Successfully!',
-            'user' => $user,
-            'authorization' => [
-                'token' => $token,
-                'type' => 'Bearer'
-            ]
-        ], 201);
+            $token = Auth::login($user);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User Created Successfully!',
+                'user' => $user,
+                'authorization' => [
+                    'token' => $token,
+                    'type' => 'Bearer'
+                ]
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
     }
 
     public function login(Request $request)
