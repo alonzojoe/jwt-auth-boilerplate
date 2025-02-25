@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+
 use App\Models\User;
 
 class AuthController extends Controller
@@ -53,28 +55,41 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string'
-        ]);
+        try {
+            $request->validate([
+                'email' => 'required|string|email',
+                'password' => 'required|string'
+            ]);
 
-        $credentials = $request->only('email', 'password');
+            $credentials = $request->only('email', 'password');
 
-        $token = Auth::attempt($credentials);
+            if (!$token = Auth::attempt($credentials)) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
 
-        if (!$token) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            $user = Auth::user();
+
+            return response()->json([
+                'status' => 'success',
+                'user' => $user,
+                'authorization' => [
+                    'token' => $token,
+                    'type' => 'Bearer'
+                ]
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $user = Auth::user();
-        return response()->json([
-            'status' => 'success',
-            'user' => $user,
-            'authorization' => [
-                'token' => $token,
-                'type' => 'Bearer'
-            ]
-        ], 200);
     }
 
 
