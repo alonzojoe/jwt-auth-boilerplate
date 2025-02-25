@@ -85,4 +85,17 @@ class AuthController extends Controller
             'user' => Auth::user()
         ], 200);
     }
+
+    public function refresh()
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'refresh token generated',
+            'user' => Auth::user(),
+            'authorization' => [
+                'token' => Auth::refresh(),
+                'type' => 'Bearer'
+            ]
+        ], 200);
+    }
 }
