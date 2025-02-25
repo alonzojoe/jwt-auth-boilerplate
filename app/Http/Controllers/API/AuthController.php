@@ -124,4 +124,47 @@ class AuthController extends Controller
             ]
         ], 200);
     }
+
+    public function changePassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|string|email|exists:users,email',
+                'oldpassword' => 'required|string',
+                'newpassword' => 'required|string|min:6',
+            ]);
+
+
+            $user = User::where('email', $request->email)->first();
+
+
+            if (!Hash::check($request->oldpassword, $user->password)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Old password is incorrect'
+                ], 400);
+            }
+
+
+            $user->password = Hash::make($request->newpassword);
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Password changed successfully'
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
